@@ -81,10 +81,9 @@ body {
     flex: 1;
     overflow-y: auto;
     padding: 20px;
-    padding-bottom: 130px;
+    padding-bottom: 120px;
 }
 
-/* Desktop grid */
 .song-list {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
@@ -128,27 +127,28 @@ body {
 /* ================= PLAYER ================= */
 .player-bar {
     position: fixed;
-    bottom: -120px;
+    bottom: -110px;
     left: 0;
     width: 100%;
+    height: 90px;
     backdrop-filter: blur(20px);
     background: var(--surface);
     border-top: 1px solid var(--glass-border);
     display: flex;
     align-items: center;
-    padding: 10px 20px;
+    padding: 0 20px;
     transition: bottom 0.4s ease;
-    z-index: 200;
-    flex-wrap: wrap;
 }
 
-.player-bar.visible { bottom: 0; }
+.player-bar.visible {
+    bottom: 0;
+}
 
 .player-info {
     display: flex;
     align-items: center;
     gap: 12px;
-    flex: 1 1 150px;
+    width: 30%;
 }
 
 .player-info img {
@@ -157,31 +157,16 @@ body {
     border-radius: 8px;
 }
 
-.track-details h4 {
-    font-size: 14px;
-    margin: 0;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-.track-details p {
-    font-size: 12px;
-    color: var(--text-secondary);
-    margin: 0;
-}
-
 .player-controls {
-    flex: 2 1 200px;
+    flex: 1;
     display: flex;
     flex-direction: column;
     align-items: center;
-    width: 100%;
 }
 
 .control-buttons {
     display: flex;
-    gap: 15px;
-    margin-bottom: 5px;
+    gap: 18px;
 }
 
 .control-btn {
@@ -189,10 +174,11 @@ body {
     border: none;
     color: var(--text-secondary);
     font-size: 18px;
-    cursor: pointer;
-    transition: color 0.2s;
 }
-.control-btn.active { color: var(--galaxy-accent); }
+
+.control-btn.active {
+    color: var(--galaxy-accent);
+}
 
 .play-main {
     background: var(--galaxy-accent);
@@ -200,42 +186,66 @@ body {
     width: 42px;
     height: 42px;
     border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
 }
 
+/* Progress */
 .progress-container {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     width: 100%;
-    gap: 8px;
-    font-size: 11px;
+    gap: 10px;
+    font-size: 12px;
+    color: var(--text-secondary);
 }
 
 .progress-bar-wrapper {
     flex: 1;
-    height: 6px;
+    height: 4px;
     background: #2a234d;
     border-radius: 10px;
     cursor: pointer;
-    position: relative;
 }
 
 .progress-bar {
     height: 100%;
     width: 0%;
     background: var(--galaxy-accent);
-    border-radius: 10px;
 }
 
+/* Volume */
 .volume-controls {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
 }
 
-.volume-controls input { accent-color: var(--galaxy-accent); }
+.volume-controls input {
+    accent-color: var(--galaxy-accent);
+    -webkit-appearance: none;
+    width: 100px;
+    height: 4px;
+    background: #2a234d;
+    border-radius: 2px;
+    cursor: pointer;
+}
+
+.volume-controls input::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--galaxy-accent);
+    cursor: pointer;
+}
+
+.volume-controls input::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--galaxy-accent);
+    cursor: pointer;
+}
 
 /* ================= MOBILE ================= */
 @media (max-width: 768px) {
@@ -253,12 +263,52 @@ body {
         padding: 10px;
     }
 
-    .song-img { width: 48px; height: 48px; border-radius: 6px; }
-    .song-title { font-size: 14px; flex: 1; white-space: nowrap; overflow: hidden; }
-    .play-action { display: block; color: var(--galaxy-accent); margin-left: auto; }
+    .song-img {
+        width: 48px;
+        height: 48px;
+        border-radius: 6px;
+    }
 
-    .player-info, .volume-controls { display: none; }
-    .player-controls { width: 100%; }
+    .song-title {
+        font-size: 14px;
+    }
 
-    .search-container.active input { width: 150px; }
+    .play-action {
+        display: block;
+        margin-left: auto;
+        color: var(--galaxy-accent);
+    }
+
+    .player-info,
+    .volume-controls {
+        display: flex; /* show info + volume on mobile */
+        flex: 1;
+        align-items: center;
+    }
+
+    .player-controls {
+        flex: 2;
+        align-items: center;
+    }
+
+    .control-buttons {
+        gap: 12px;
+    }
+
+    .progress-container {
+        font-size: 10px;
+    }
+
+    .progress-bar-wrapper {
+        height: 3px;
+    }
+
+    .play-main {
+        width: 38px;
+        height: 38px;
+    }
+
+    .search-container.active input {
+        width: 150px;
+    }
 }

@@ -1,14 +1,19 @@
-// ===================== DATA =====================
+// =====================
+// DATA
+// =====================
 let songs = [];
 const DEFAULT_COVER = "assets/no-cover.png";
 
-// ===================== DOM ELEMENTS =====================
+// =====================
+// DOM ELEMENTS
+// =====================
 const songListContainer = document.getElementById("songList");
 const searchInput = document.getElementById("searchInput");
 const searchIcon = document.querySelector(".search-container i");
 const playerBar = document.getElementById("playerBar");
 const audio = new Audio();
 
+// Player controls
 const playBtn = document.getElementById("playBtn");
 const prevBtn = document.getElementById("prevBtn");
 const nextBtn = document.getElementById("nextBtn");
@@ -22,12 +27,16 @@ const currentTimeEl = document.getElementById("currentTime");
 const durationEl = document.getElementById("duration");
 const volumeSlider = document.getElementById("volumeSlider");
 
-// ===================== STATE =====================
+// =====================
+// STATE
+// =====================
 let currentSongIndex = -1;
 let isShuffle = false;
 let isLoop = false;
 
-// ===================== LOAD SONGS =====================
+// =====================
+// LOAD SONGS
+// =====================
 fetch("songs.json")
     .then(res => res.json())
     .then(data => {
@@ -39,7 +48,9 @@ fetch("songs.json")
         renderSongList(songs);
     });
 
-// ===================== RENDER SONGS =====================
+// =====================
+// RENDER SONGS
+// =====================
 function renderSongList(list) {
     songListContainer.innerHTML = "";
     list.forEach(song => {
@@ -56,7 +67,9 @@ function renderSongList(list) {
     });
 }
 
-// ===================== PLAYER =====================
+// =====================
+// PLAYER
+// =====================
 function playSong(index) {
     currentSongIndex = index;
     audio.src = `songs/${songs[index].file}`;
@@ -70,7 +83,6 @@ function playSong(index) {
     updatePlayIcon(true);
 }
 
-// ===================== ACTIVE SONG =====================
 function updateActive() {
     document.querySelectorAll(".song-item").forEach(el => {
         el.classList.remove("active");
@@ -83,30 +95,28 @@ function updateActive() {
     }
 }
 
-// ===================== CONTROLS =====================
+// =====================
+// PLAY / PAUSE
+// =====================
 playBtn.onclick = () => {
+    if (!audio.src) return;
     if (audio.paused) audio.play();
     else audio.pause();
-};
-prevBtn.onclick = () => playSong((currentSongIndex - 1 + songs.length) % songs.length);
-nextBtn.onclick = () => playSong(getNextIndex());
-shuffleBtn.onclick = () => {
-    isShuffle = !isShuffle;
-    shuffleBtn.classList.toggle("active", isShuffle);
-};
-loopBtn.onclick = () => {
-    isLoop = !isLoop;
-    loopBtn.classList.toggle("active", isLoop);
 };
 
 audio.onplay = () => updatePlayIcon(true);
 audio.onpause = () => updatePlayIcon(false);
-audio.onended = () => {
-    if (isLoop) audio.play();
-    else playSong(getNextIndex());
-};
 
-// ===================== SHUFFLE LOGIC =====================
+function updatePlayIcon(playing) {
+    playBtn.innerHTML = playing ? '<i class="fa-solid fa-pause"></i>' : '<i class="fa-solid fa-play"></i>';
+
+    const activeIcon = document.querySelector(`.song-item.active .play-action i`);
+    if (activeIcon) activeIcon.className = playing ? 'fa-solid fa-pause' : 'fa-solid fa-play';
+}
+
+// =====================
+// SHUFFLE / NEXT
+// =====================
 function getNextIndex() {
     if (!isShuffle) return (currentSongIndex + 1) % songs.length;
     let r;
@@ -115,7 +125,30 @@ function getNextIndex() {
     return r;
 }
 
-// ===================== PROGRESS =====================
+// =====================
+// CONTROLS
+// =====================
+prevBtn.onclick = () => playSong((currentSongIndex - 1 + songs.length) % songs.length);
+nextBtn.onclick = () => playSong(getNextIndex());
+
+shuffleBtn.onclick = () => {
+    isShuffle = !isShuffle;
+    shuffleBtn.classList.toggle("active", isShuffle);
+};
+
+loopBtn.onclick = () => {
+    isLoop = !isLoop;
+    loopBtn.classList.toggle("active", isLoop);
+};
+
+audio.onended = () => {
+    if (isLoop) audio.play();
+    else playSong(getNextIndex());
+};
+
+// =====================
+// PROGRESS
+// =====================
 audio.ontimeupdate = () => {
     if (!audio.duration) return;
     progressBar.style.width = `${(audio.currentTime / audio.duration) * 100}%`;
@@ -128,29 +161,30 @@ progressContainer.onclick = e => {
     audio.currentTime = (e.offsetX / progressContainer.clientWidth) * audio.duration;
 };
 
-// ===================== VOLUME =====================
-volumeSlider.oninput = e => {
-    audio.volume = e.target.value;
-};
+// =====================
+// VOLUME
+// =====================
+volumeSlider.oninput = e => { audio.volume = e.target.value; };
 
-// ===================== SEARCH =====================
+// =====================
+// SEARCH (Mobile + Desktop)
+// =====================
 searchInput.oninput = e => {
     const term = e.target.value.toLowerCase();
     renderSongList(songs.filter(s => s.title.toLowerCase().includes(term)));
 };
 
-// Show/hide search on mobile
 if (searchIcon) {
     searchIcon.onclick = () => {
-        const container = searchIcon.parentElement;
-        container.classList.toggle("active");
-        if (container.classList.contains("active")) searchInput.focus();
-        else searchInput.value = ""; renderSongList(songs);
+        searchIcon.parentElement.classList.toggle("active");
+        if (searchIcon.parentElement.classList.contains("active")) searchInput.focus();
     };
 }
 
-// ===================== UTILS =====================
+// =====================
+// UTILS
+// =====================
 function formatTime(t) {
     if (!t || isNaN(t)) return "0:00";
-    return `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2,"0")}`;
+    return `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, "0")}`;
 }
