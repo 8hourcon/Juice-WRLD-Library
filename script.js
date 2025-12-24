@@ -3,7 +3,7 @@
 // =====================
 let songs = [];
 
-// Local fallback cover (YOU provide this file)
+// Local fallback cover (same image for all songs)
 const DEFAULT_COVER = "assets/no-cover.png";
 
 // =====================
@@ -13,7 +13,6 @@ const songListContainer = document.getElementById("songList");
 const searchInput = document.getElementById("searchInput");
 const playerBar = document.getElementById("playerBar");
 const audio = new Audio();
-const jsmediatags = window.jsmediatags;
 
 // Player controls
 const playBtn = document.getElementById("playBtn");
@@ -45,12 +44,10 @@ fetch("songs.json")
         return res.json();
     })
     .then(data => {
-        // Attach stable indexes
         songs = data.map((s, i) => ({
             title: s.title.trim(),
             file: s.file.trim(),
-            index: i,
-            cover: null
+            index: i
         }));
         init();
     })
@@ -85,7 +82,7 @@ function renderSongList(songArray) {
         card.dataset.index = song.index;
 
         card.innerHTML = `
-            <img src="${DEFAULT_COVER}" class="song-img" id="img-${song.index}">
+            <img src="${DEFAULT_COVER}" class="song-img">
             <div class="song-info">
                 <div class="song-title">${song.title}</div>
             </div>
@@ -95,56 +92,8 @@ function renderSongList(songArray) {
         `;
 
         card.onclick = () => playSong(song.index);
-
         songListContainer.appendChild(card);
-        fetchCoverArt(song.file, song.index);
     });
-}
-
-// =====================
-// COVER ART HANDLING
-// =====================
-function fetchCoverArt(filename, index) {
-    fetch(`songs/${filename}`)
-        .then(res => res.arrayBuffer())
-        .then(buffer => {
-            jsmediatags.read(buffer, {
-                onSuccess: tag => {
-                    const pic = tag.tags.picture;
-                    if (!pic) {
-                        useFallbackCover(index);
-                        return;
-                    }
-
-                    let binary = "";
-                    for (let i = 0; i < pic.data.length; i++) {
-                        binary += String.fromCharCode(pic.data[i]);
-                    }
-
-                    const coverUrl =
-                        `data:${pic.format};base64,${btoa(binary)}`;
-
-                    applyCover(index, coverUrl);
-                },
-                onError: () => useFallbackCover(index)
-            });
-        })
-        .catch(() => useFallbackCover(index));
-}
-
-function applyCover(index, url) {
-    const img = document.getElementById(`img-${index}`);
-    if (img) img.src = url;
-
-    songs[index].cover = url;
-
-    if (index === currentSongIndex) {
-        currentThumb.src = url;
-    }
-}
-
-function useFallbackCover(index) {
-    applyCover(index, DEFAULT_COVER);
 }
 
 // =====================
@@ -160,16 +109,40 @@ function playSong(index) {
     audio.play();
 
     currentTitle.innerText = song.title;
-    currentThumb.src = song.cover || DEFAULT_COVER;
+    currentThumb.src = DEFAULT_COVER;
     playerBar.classList.add("visible");
 
+    updateActiveSong();
     updatePlayIcon(true);
+}
+
+// =====================
+// ACTIVE SONG UI
+// =====================
+function updateActiveSong() {
+    document.querySelectorAll(".song-item").forEach(item => {
+        item.classList.remove("active");
+        item.querySelector(".play-action").innerHTML =
+            '<i class="fa-solid fa-play"></i>';
+    });
+
+    const active = document.querySelector(
+        `.song-item[data-index="${currentSongIndex}"]`
+    );
+
+    if (active) {
+        active.classList.add("active");
+        active.querySelector(".play-action").innerHTML =
+            '<i class="fa-solid fa-pause"></i>';
+    }
 }
 
 // =====================
 // PLAY / PAUSE
 // =====================
 function togglePlay() {
+    if (!audio.src) return;
+
     if (audio.paused) {
         audio.play();
         updatePlayIcon(true);
@@ -186,6 +159,20 @@ function updatePlayIcon(playing) {
 }
 
 // =====================
+// SHUFFLE / NEXT LOGIC (FIXED)
+// =====================
+function getNextIndex() {
+    if (isShuffle) {
+        let r;
+        do {
+            r = Math.floor(Math.random() * songs.length);
+        } while (r === currentSongIndex && songs.length > 1);
+        return r;
+    }
+    return (currentSongIndex + 1) % songs.length;
+}
+
+// =====================
 // CONTROLS
 // =====================
 prevBtn.onclick = () => {
@@ -195,7 +182,7 @@ prevBtn.onclick = () => {
 
 nextBtn.onclick = () => {
     if (!songs.length) return;
-    playSong((currentSongIndex + 1) % songs.length);
+    playSong(getNextIndex());
 };
 
 shuffleBtn.onclick = () => {
@@ -212,14 +199,8 @@ audio.onended = () => {
     if (isLoop) {
         audio.currentTime = 0;
         audio.play();
-    } else if (isShuffle) {
-        let r;
-        do {
-            r = Math.floor(Math.random() * songs.length);
-        } while (r === currentSongIndex && songs.length > 1);
-        playSong(r);
     } else {
-        nextBtn.click();
+        playSong(getNextIndex());
     }
 };
 
@@ -248,6 +229,8 @@ progressContainer.onclick = e => {
 volumeSlider.oninput = e => {
     audio.volume = e.target.value;
 };
+
+playBtn.onclick = togglePlay;
 
 // =====================
 // SEARCH
