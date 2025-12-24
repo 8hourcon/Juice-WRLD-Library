@@ -79,19 +79,28 @@ function renderSongList(songArray) {
 }
 
 function fetchCoverArt(filename, index) {
-    jsmediatags.read(`songs/${filename}`, {
-        onSuccess: tag => {
-            const pic = tag.tags.picture;
-            if (!pic) return;
+    try {
+        jsmediatags.read(`songs/${filename}`, {
+            onSuccess: tag => {
+                const pic = tag.tags.picture;
+                if (!pic) return;
 
-            let base64 = "";
-            pic.data.forEach(byte => base64 += String.fromCharCode(byte));
+                let base64 = "";
+                pic.data.forEach(b => base64 += String.fromCharCode(b));
+                const src = `data:${pic.format};base64,${btoa(base64)}`;
 
-            const src = `data:${pic.format};base64,${btoa(base64)}`;
-            document.getElementById(`img-${index}`).src = src;
-            songs[index].cover = src;
-        }
-    });
+                const img = document.getElementById(`img-${index}`);
+                if (img) img.src = src;
+
+                songs[index].cover = src;
+            },
+            onError: () => {
+                // Silently ignore — placeholder stays
+            }
+        });
+    } catch {
+        // Ignore completely
+    }
 }
 
 // --- PLAYER ---
