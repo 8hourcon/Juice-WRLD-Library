@@ -2,7 +2,6 @@
 // DATA
 // =====================
 let songs = [];
-const DEFAULT_COVER = "assets/no-cover.png";
 
 // =====================
 // DOM ELEMENTS
@@ -31,8 +30,18 @@ let isShuffle = false;
 let isLoop = false;
 
 // =====================
-// LOAD SONGS
+// INITIALIZATION
 // =====================
+// For testing purposes, if you don't have a json file server running,
+// you can replace the fetch with a manual array:
+/*
+songs = [
+    { title: "Song One", file: "song1.mp3", index: 0 },
+    { title: "Song Two", file: "song2.mp3", index: 1 }
+];
+renderSongList(songs);
+*/
+
 fetch("songs.json")
   .then(res => res.json())
   .then(data => {
@@ -42,75 +51,117 @@ fetch("songs.json")
       index: i
     }));
     renderSongList(songs);
-  });
+  })
+  .catch(err => console.error("Error loading songs:", err));
 
 // =====================
 // RENDER SONGS
 // =====================
 function renderSongList(list) {
   songListContainer.innerHTML = "";
+  if(list.length === 0) {
+      songListContainer.innerHTML = "<div style='color:var(--text-secondary); text-align:center; grid-column: 1/-1;'>No songs found</div>";
+      return;
+  }
+  
   list.forEach(song => {
     const card = document.createElement("div");
     card.className = "song-item";
     card.dataset.index = song.index;
+    
+    // Check if this song is currently playing
+    if(song.index === currentSongIndex) {
+        card.classList.add("active");
+    }
+
     card.innerHTML = `
         <div class="song-title">${song.title}</div>
-        <div class="play-action"><i class="fa-solid fa-play"></i></div>
+        <div class="play-action">
+            <i class="fa-solid ${song.index === currentSongIndex && !audio.paused ? 'fa-pause' : 'fa-play'}"></i>
+        </div>
     `;
-    card.onclick = () => playSong(song.index);
+    
+    card.onclick = () => {
+        if(currentSongIndex === song.index) {
+            // Toggle play/pause if clicking the same song
+            audio.paused ? audio.play() : audio.pause();
+        } else {
+            playSong(song.index);
+        }
+    };
     songListContainer.appendChild(card);
   });
 }
 
 // =====================
-// PLAYER
+// PLAYER LOGIC
 // =====================
 function playSong(index) {
   currentSongIndex = index;
   audio.src = `songs/${songs[index].file}`;
-  audio.play();
+  
+  // Try to play (browsers require user interaction first)
+  const playPromise = audio.play();
+  if (playPromise !== undefined) {
+      playPromise.catch(error => console.log("Playback prevented:", error));
+  }
 
   currentTitle.innerText = songs[index].title;
+  
+  // Show player bar smoothly
   playerBar.classList.add("visible");
 
-  updateActive();
-  updatePlayIcon(true);
+  updateActiveUI();
 }
 
-function updateActive() {
+function updateActiveUI() {
+  // Update List Styles
   document.querySelectorAll(".song-item").forEach(el => {
     el.classList.remove("active");
-    el.querySelector(".play-action i").className = "fa-solid fa-play";
+    const icon = el.querySelector(".play-action i");
+    if(icon) icon.className = "fa-solid fa-play";
   });
-  const active = document.querySelector(`[data-index="${currentSongIndex}"]`);
-  if (active) {
-    active.classList.add("active");
-    active.querySelector(".play-action i").className = "fa-solid fa-pause";
+
+  const activeCard = document.querySelector(`.song-item[data-index="${currentSongIndex}"]`);
+  if (activeCard) {
+    activeCard.classList.add("active");
+    const icon = activeCard.querySelector(".play-action i");
+    if(icon) icon.className = audio.paused ? "fa-solid fa-play" : "fa-solid fa-pause";
   }
-}
-
-// =====================
-// PLAY / PAUSE
-// =====================
-playBtn.onclick = () => {
-  if (!audio.src) return;
-  audio.paused ? audio.play() : audio.pause();
-};
-
-audio.onplay = () => updatePlayIcon(true);
-audio.onpause = () => updatePlayIcon(false);
-
-function updatePlayIcon(playing) {
-  playBtn.innerHTML = playing ? '<i class="fa-solid fa-pause"></i>' : '<i class="fa-solid fa-play"></i>';
-  const activeIcon = document.querySelector(`.song-item.active .play-action i`);
-  if (activeIcon) activeIcon.className = playing ? 'fa-solid fa-pause' : 'fa-solid fa-play';
+  
+  // Update Main Player Button
+  playBtn.innerHTML = audio.paused ? '<i class="fa-solid fa-play"></i>' : '<i class="fa-solid fa-pause"></i>';
 }
 
 // =====================
 // CONTROLS
 // =====================
-prevBtn.onclick = () => playSong((currentSongIndex - 1 + songs.length) % songs.length);
-nextBtn.onclick = () => playSong(getNextIndex());
+playBtn.onclick = () => {
+  if (!audio.src && songs.length > 0) {
+      playSong(0); // Play first song if nothing selected
+      return;
+  }
+  if (!audio.src) return;
+
+  audio.paused ? audio.play() : audio.pause();
+};
+
+audio.onplay = () => updateActiveUI();
+audio.onpause = () => updateActiveUI();
+
+prevBtn.onclick = () => {
+    if(currentSongIndex === -1) return;
+    let newIndex = (currentSongIndex - 1 + songs.length) % songs.length;
+    playSong(newIndex);
+};
+
+nextBtn.onclick = () => {
+    if(currentSongIndex === -1 && songs.length > 0) {
+        playSong(0);
+        return;
+    }
+    playSong(getNextIndex());
+};
 
 shuffleBtn.onclick = () => {
   isShuffle = !isShuffle;
@@ -123,47 +174,65 @@ loopBtn.onclick = () => {
 };
 
 audio.onended = () => {
-  if (isLoop) audio.play();
-  else playSong(getNextIndex());
+  if (isLoop) {
+      audio.currentTime = 0;
+      audio.play();
+  } else {
+      playSong(getNextIndex());
+  }
 };
 
 function getNextIndex() {
   if (!isShuffle) return (currentSongIndex + 1) % songs.length;
+  
+  // Random logic
+  if(songs.length <= 1) return 0;
   let r;
   do { r = Math.floor(Math.random() * songs.length); }
-  while (r === currentSongIndex && songs.length > 1);
+  while (r === currentSongIndex);
   return r;
 }
 
 // =====================
-// PROGRESS
+// PROGRESS BAR
 // =====================
 audio.ontimeupdate = () => {
   if (!audio.duration) return;
-  progressBar.style.width = `${(audio.currentTime / audio.duration) * 100}%`;
+  const percent = (audio.currentTime / audio.duration) * 100;
+  progressBar.style.width = `${percent}%`;
 };
 
 progressContainer.onclick = e => {
   if (!audio.duration) return;
-  audio.currentTime = (e.offsetX / progressContainer.clientWidth) * audio.duration;
+  const rect = progressContainer.getBoundingClientRect();
+  const clickX = e.clientX - rect.left;
+  const width = rect.width;
+  audio.currentTime = (clickX / width) * audio.duration;
 };
 
 // =====================
 // VOLUME
 // =====================
-volumeSlider.oninput = e => { audio.volume = e.target.value; };
+volumeSlider.oninput = e => { 
+    audio.volume = e.target.value; 
+};
 
 // =====================
 // SEARCH
 // =====================
 searchInput.oninput = e => {
   const term = e.target.value.toLowerCase();
-  renderSongList(songs.filter(s => s.title.toLowerCase().includes(term)));
+  const filtered = songs.filter(s => s.title.toLowerCase().includes(term));
+  renderSongList(filtered);
 };
 
+// Toggle search visibility
 if (searchIcon) {
   searchIcon.onclick = () => {
-    searchIcon.parentElement.classList.toggle("active");
-    if (searchIcon.parentElement.classList.contains("active")) searchInput.focus();
+    const container = document.querySelector(".search-container");
+    container.classList.toggle("active");
+    if (container.classList.contains("active")) {
+        searchInput.focus();
+    }
   };
 }
