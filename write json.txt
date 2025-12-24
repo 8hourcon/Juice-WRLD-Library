@@ -1,0 +1,6 @@
+Get-ChildItem -File -Filter *.mp3 | ForEach-Object {
+    [PSCustomObject]@{
+        title = [System.IO.Path]::GetFileNameWithoutExtension($_.Name)
+        file  = $_.Name
+    }
+} | ConvertTo-Json -Depth 2 | Out-File ../songs.json -Encoding utf8
