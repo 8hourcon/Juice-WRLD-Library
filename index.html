@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JuiceWRLD Library</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
+</head>
+<body>
+
+    <header class="top-bar">
+        <div class="logo">JuiceWRLD Library</div>
+        <div class="search-container">
+            <i class="fa-solid fa-search"></i>
+            <input type="text" id="searchInput" placeholder="Search unreleased tracks...">
+        </div>
+    </header>
+
+    <main class="library-container">
+        <div id="songList" class="song-list">
+            </div>
+    </main>
+
+    <div class="player-bar" id="playerBar">
+        <div class="player-info">
+            <img id="currentThumb" src="" alt="Cover">
+            <div class="track-details">
+                <h4 id="currentTitle">Select a song</h4>
+                <p>Juice WRLD</p>
+            </div>
+        </div>
+
+        <div class="player-controls">
+            <div class="control-buttons">
+                <button id="shuffleBtn" class="control-btn" title="Shuffle">
+                    <i class="fa-solid fa-shuffle"></i>
+                </button>
+                
+                <button id="prevBtn" class="control-btn">
+                    <i class="fa-solid fa-backward-step"></i>
+                </button>
+
+                <button id="playBtn" class="control-btn play-main">
+                    <i class="fa-solid fa-play"></i>
+                </button>
+
+                <button id="nextBtn" class="control-btn">
+                    <i class="fa-solid fa-forward-step"></i>
+                </button>
+
+                <button id="loopBtn" class="control-btn" title="Loop Song">
+                    <i class="fa-solid fa-repeat"></i>
+                </button>
+            </div>
+            
+            <div class="progress-container">
+                <span id="currentTime">0:00</span>
+                <div class="progress-bar-wrapper" id="progressContainer">
+                    <div class="progress-bar" id="progressBar"></div>
+                </div>
+                <span id="duration">0:00</span>
+            </div>
+        </div>
+        
+        <div class="volume-controls">
+            <i class="fa-solid fa-volume-high"></i>
+            <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="1">
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
