@@ -22,6 +22,17 @@ const progressContainer = document.getElementById("progressContainer");
 const currentTitle = document.getElementById("currentTitle");
 const volumeSlider = document.getElementById("volumeSlider");
 
+// Inject Time Elements Dynamically
+// This creates the time stamps below the progress bar
+const timeDiv = document.createElement("div");
+timeDiv.className = "time-marker";
+timeDiv.innerHTML = '<span id="currTime">0:00</span><span id="durTime">0:00</span>';
+// Insert timeDiv after progress container
+progressContainer.parentNode.insertBefore(timeDiv, progressContainer.nextSibling);
+
+const currTimeEl = document.getElementById("currTime");
+const durTimeEl = document.getElementById("durTime");
+
 // =====================
 // STATE
 // =====================
@@ -30,18 +41,8 @@ let isShuffle = false;
 let isLoop = false;
 
 // =====================
-// INITIALIZATION
+// LOAD SONGS
 // =====================
-// For testing purposes, if you don't have a json file server running,
-// you can replace the fetch with a manual array:
-/*
-songs = [
-    { title: "Song One", file: "song1.mp3", index: 0 },
-    { title: "Song Two", file: "song2.mp3", index: 1 }
-];
-renderSongList(songs);
-*/
-
 fetch("songs.json")
   .then(res => res.json())
   .then(data => {
@@ -68,11 +69,7 @@ function renderSongList(list) {
     const card = document.createElement("div");
     card.className = "song-item";
     card.dataset.index = song.index;
-    
-    // Check if this song is currently playing
-    if(song.index === currentSongIndex) {
-        card.classList.add("active");
-    }
+    if(song.index === currentSongIndex) card.classList.add("active");
 
     card.innerHTML = `
         <div class="song-title">${song.title}</div>
@@ -83,7 +80,6 @@ function renderSongList(list) {
     
     card.onclick = () => {
         if(currentSongIndex === song.index) {
-            // Toggle play/pause if clicking the same song
             audio.paused ? audio.play() : audio.pause();
         } else {
             playSong(song.index);
@@ -100,22 +96,17 @@ function playSong(index) {
   currentSongIndex = index;
   audio.src = `songs/${songs[index].file}`;
   
-  // Try to play (browsers require user interaction first)
   const playPromise = audio.play();
   if (playPromise !== undefined) {
       playPromise.catch(error => console.log("Playback prevented:", error));
   }
 
   currentTitle.innerText = songs[index].title;
-  
-  // Show player bar smoothly
   playerBar.classList.add("visible");
-
   updateActiveUI();
 }
 
 function updateActiveUI() {
-  // Update List Styles
   document.querySelectorAll(".song-item").forEach(el => {
     el.classList.remove("active");
     const icon = el.querySelector(".play-action i");
@@ -129,7 +120,6 @@ function updateActiveUI() {
     if(icon) icon.className = audio.paused ? "fa-solid fa-play" : "fa-solid fa-pause";
   }
   
-  // Update Main Player Button
   playBtn.innerHTML = audio.paused ? '<i class="fa-solid fa-play"></i>' : '<i class="fa-solid fa-pause"></i>';
 }
 
@@ -138,11 +128,10 @@ function updateActiveUI() {
 // =====================
 playBtn.onclick = () => {
   if (!audio.src && songs.length > 0) {
-      playSong(0); // Play first song if nothing selected
+      playSong(0);
       return;
   }
   if (!audio.src) return;
-
   audio.paused ? audio.play() : audio.pause();
 };
 
@@ -184,8 +173,6 @@ audio.onended = () => {
 
 function getNextIndex() {
   if (!isShuffle) return (currentSongIndex + 1) % songs.length;
-  
-  // Random logic
   if(songs.length <= 1) return 0;
   let r;
   do { r = Math.floor(Math.random() * songs.length); }
@@ -194,14 +181,29 @@ function getNextIndex() {
 }
 
 // =====================
-// PROGRESS BAR
+// TIME & PROGRESS
 // =====================
+function formatTime(s) {
+    if(isNaN(s)) return "0:00";
+    const minutes = Math.floor(s / 60);
+    const seconds = Math.floor(s % 60);
+    return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+}
+
 audio.ontimeupdate = () => {
   if (!audio.duration) return;
   const percent = (audio.currentTime / audio.duration) * 100;
   progressBar.style.width = `${percent}%`;
+  
+  if(currTimeEl) currTimeEl.innerText = formatTime(audio.currentTime);
+  if(durTimeEl) durTimeEl.innerText = formatTime(audio.duration);
 };
 
+audio.onloadedmetadata = () => {
+    if(durTimeEl) durTimeEl.innerText = formatTime(audio.duration);
+};
+
+// Make progress clickable
 progressContainer.onclick = e => {
   if (!audio.duration) return;
   const rect = progressContainer.getBoundingClientRect();
@@ -211,11 +213,11 @@ progressContainer.onclick = e => {
 };
 
 // =====================
-// VOLUME
+// VOLUME (PC ONLY)
 // =====================
-volumeSlider.oninput = e => { 
-    audio.volume = e.target.value; 
-};
+if(volumeSlider) {
+    volumeSlider.oninput = e => { audio.volume = e.target.value; };
+}
 
 // =====================
 // SEARCH
@@ -226,13 +228,10 @@ searchInput.oninput = e => {
   renderSongList(filtered);
 };
 
-// Toggle search visibility
 if (searchIcon) {
   searchIcon.onclick = () => {
     const container = document.querySelector(".search-container");
     container.classList.toggle("active");
-    if (container.classList.contains("active")) {
-        searchInput.focus();
-    }
+    if (container.classList.contains("active")) searchInput.focus();
   };
 }
