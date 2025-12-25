@@ -1,237 +1,214 @@
 // =====================
-// DATA
+// DATA & STATE
 // =====================
 let songs = [];
-
-// =====================
-// DOM ELEMENTS
-// =====================
-const songListContainer = document.getElementById("songList");
-const searchInput = document.getElementById("searchInput");
-const searchIcon = document.querySelector(".search-container i");
-const playerBar = document.getElementById("playerBar");
-const audio = new Audio();
-
-const playBtn = document.getElementById("playBtn");
-const prevBtn = document.getElementById("prevBtn");
-const nextBtn = document.getElementById("nextBtn");
-const shuffleBtn = document.getElementById("shuffleBtn");
-const loopBtn = document.getElementById("loopBtn");
-const progressBar = document.getElementById("progressBar");
-const progressContainer = document.getElementById("progressContainer");
-const currentTitle = document.getElementById("currentTitle");
-const volumeSlider = document.getElementById("volumeSlider");
-
-// Inject Time Elements Dynamically
-// This creates the time stamps below the progress bar
-const timeDiv = document.createElement("div");
-timeDiv.className = "time-marker";
-timeDiv.innerHTML = '<span id="currTime">0:00</span><span id="durTime">0:00</span>';
-// Insert timeDiv after progress container
-progressContainer.parentNode.insertBefore(timeDiv, progressContainer.nextSibling);
-
-const currTimeEl = document.getElementById("currTime");
-const durTimeEl = document.getElementById("durTime");
-
-// =====================
-// STATE
-// =====================
-let currentSongIndex = -1;
+let currentIndex = -1;
 let isShuffle = false;
 let isLoop = false;
+const audio = new Audio();
 
 // =====================
-// LOAD SONGS
+// ELEMENTS
+// =====================
+const els = {
+    list: document.getElementById("songList"),
+    player: document.getElementById("playerBar"),
+    title: document.getElementById("currentTitle"),
+    artist: document.getElementById("currentArtist"),
+    playBtn: document.getElementById("playBtn"),
+    prevBtn: document.getElementById("prevBtn"),
+    nextBtn: document.getElementById("nextBtn"),
+    shuffleBtn: document.getElementById("shuffleBtn"),
+    loopBtn: document.getElementById("loopBtn"),
+    progressContainer: document.getElementById("progressContainer"),
+    progressBar: document.getElementById("progressBar"),
+    currTime: document.getElementById("currTime"),
+    durTime: document.getElementById("durTime"),
+    volSlider: document.getElementById("volumeSlider"),
+    search: document.getElementById("searchInput")
+};
+
+// =====================
+// INITIALIZATION
 // =====================
 fetch("songs.json")
-  .then(res => res.json())
-  .then(data => {
-    songs = data.map((s, i) => ({
-      title: s.title.trim(),
-      file: s.file.trim(),
-      index: i
-    }));
-    renderSongList(songs);
-  })
-  .catch(err => console.error("Error loading songs:", err));
+    .then(res => res.json())
+    .then(data => {
+        songs = data.map((s, i) => ({ ...s, index: i }));
+        renderList(songs);
+    })
+    .catch(err => {
+        console.error(err);
+        els.list.innerHTML = `<div style="color:white; text-align:center; padding-top:20px;">Error loading songs.<br>Make sure 'songs.json' exists.</div>`;
+    });
 
 // =====================
-// RENDER SONGS
+// UI RENDER
 // =====================
-function renderSongList(list) {
-  songListContainer.innerHTML = "";
-  if(list.length === 0) {
-      songListContainer.innerHTML = "<div style='color:var(--text-secondary); text-align:center; grid-column: 1/-1;'>No songs found</div>";
-      return;
-  }
-  
-  list.forEach(song => {
-    const card = document.createElement("div");
-    card.className = "song-item";
-    card.dataset.index = song.index;
-    if(song.index === currentSongIndex) card.classList.add("active");
-
-    card.innerHTML = `
-        <div class="song-title">${song.title}</div>
-        <div class="play-action">
-            <i class="fa-solid ${song.index === currentSongIndex && !audio.paused ? 'fa-pause' : 'fa-play'}"></i>
-        </div>
-    `;
-    
-    card.onclick = () => {
-        if(currentSongIndex === song.index) {
-            audio.paused ? audio.play() : audio.pause();
-        } else {
-            playSong(song.index);
-        }
-    };
-    songListContainer.appendChild(card);
-  });
-}
-
-// =====================
-// PLAYER LOGIC
-// =====================
-function playSong(index) {
-  currentSongIndex = index;
-  audio.src = `songs/${songs[index].file}`;
-  
-  const playPromise = audio.play();
-  if (playPromise !== undefined) {
-      playPromise.catch(error => console.log("Playback prevented:", error));
-  }
-
-  currentTitle.innerText = songs[index].title;
-  playerBar.classList.add("visible");
-  updateActiveUI();
-}
-
-function updateActiveUI() {
-  document.querySelectorAll(".song-item").forEach(el => {
-    el.classList.remove("active");
-    const icon = el.querySelector(".play-action i");
-    if(icon) icon.className = "fa-solid fa-play";
-  });
-
-  const activeCard = document.querySelector(`.song-item[data-index="${currentSongIndex}"]`);
-  if (activeCard) {
-    activeCard.classList.add("active");
-    const icon = activeCard.querySelector(".play-action i");
-    if(icon) icon.className = audio.paused ? "fa-solid fa-play" : "fa-solid fa-pause";
-  }
-  
-  playBtn.innerHTML = audio.paused ? '<i class="fa-solid fa-play"></i>' : '<i class="fa-solid fa-pause"></i>';
-}
-
-// =====================
-// CONTROLS
-// =====================
-playBtn.onclick = () => {
-  if (!audio.src && songs.length > 0) {
-      playSong(0);
-      return;
-  }
-  if (!audio.src) return;
-  audio.paused ? audio.play() : audio.pause();
-};
-
-audio.onplay = () => updateActiveUI();
-audio.onpause = () => updateActiveUI();
-
-prevBtn.onclick = () => {
-    if(currentSongIndex === -1) return;
-    let newIndex = (currentSongIndex - 1 + songs.length) % songs.length;
-    playSong(newIndex);
-};
-
-nextBtn.onclick = () => {
-    if(currentSongIndex === -1 && songs.length > 0) {
-        playSong(0);
+function renderList(data) {
+    els.list.innerHTML = "";
+    if (data.length === 0) {
+        els.list.innerHTML = `<div style="color:#aaa; text-align:center;">No songs found</div>`;
         return;
     }
-    playSong(getNextIndex());
+    
+    data.forEach(song => {
+        const div = document.createElement("div");
+        div.className = `track-card ${song.index === currentIndex ? 'active' : ''}`;
+        div.innerHTML = `
+            <div class="card-img"><i class="fa-solid fa-music"></i></div>
+            <div class="info">
+                <div class="card-title">${song.title}</div>
+                <div class="card-artist">${song.artist || 'Unknown'}</div>
+            </div>
+        `;
+        div.onclick = () => playSong(song.index);
+        els.list.appendChild(div);
+    });
+}
+
+// =====================
+// PLAYBACK LOGIC
+// =====================
+function playSong(index) {
+    currentIndex = index;
+    const song = songs[index];
+    
+    audio.src = `songs/${song.file}`;
+    
+    // Play with error handling
+    const playPromise = audio.play();
+    if (playPromise !== undefined) {
+        playPromise.catch(e => console.log("Auto-play blocked:", e));
+    }
+    
+    // Update UI
+    els.title.innerText = song.title;
+    els.artist.innerText = song.artist || "999 Library"; // Default text fallback
+    els.player.classList.add("visible");
+    els.playBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
+    
+    // Highlight active
+    renderList(songs); // Re-render to show active state
+}
+
+function togglePlay() {
+    if (!audio.src) {
+        if (songs.length) playSong(0);
+        return;
+    }
+    if (audio.paused) {
+        audio.play();
+        els.playBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
+    } else {
+        audio.pause();
+        els.playBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
+    }
+}
+
+function nextSong() {
+    if (currentIndex === -1) {
+        if (songs.length) playSong(0);
+        return;
+    }
+    
+    if (isShuffle) {
+        if (songs.length <= 1) return;
+        let r;
+        do { r = Math.floor(Math.random() * songs.length); } while (r === currentIndex);
+        playSong(r);
+    } else {
+        playSong((currentIndex + 1) % songs.length);
+    }
+}
+
+function prevSong() {
+    if (currentIndex === -1) return;
+    playSong((currentIndex - 1 + songs.length) % songs.length);
+}
+
+// =====================
+// EVENTS
+// =====================
+els.playBtn.onclick = togglePlay;
+els.nextBtn.onclick = nextSong;
+els.prevBtn.onclick = prevSong;
+
+els.shuffleBtn.onclick = () => {
+    isShuffle = !isShuffle;
+    els.shuffleBtn.classList.toggle("active");
 };
 
-shuffleBtn.onclick = () => {
-  isShuffle = !isShuffle;
-  shuffleBtn.classList.toggle("active", isShuffle);
-};
-
-loopBtn.onclick = () => {
-  isLoop = !isLoop;
-  loopBtn.classList.toggle("active", isLoop);
+els.loopBtn.onclick = () => {
+    isLoop = !isLoop;
+    els.loopBtn.classList.toggle("active");
 };
 
 audio.onended = () => {
-  if (isLoop) {
-      audio.currentTime = 0;
-      audio.play();
-  } else {
-      playSong(getNextIndex());
-  }
+    if (isLoop) {
+        audio.currentTime = 0;
+        audio.play();
+    } else {
+        nextSong();
+    }
 };
 
-function getNextIndex() {
-  if (!isShuffle) return (currentSongIndex + 1) % songs.length;
-  if(songs.length <= 1) return 0;
-  let r;
-  do { r = Math.floor(Math.random() * songs.length); }
-  while (r === currentSongIndex);
-  return r;
-}
-
 // =====================
-// TIME & PROGRESS
+// PROGRESS & TIME
 // =====================
 function formatTime(s) {
-    if(isNaN(s)) return "0:00";
-    const minutes = Math.floor(s / 60);
-    const seconds = Math.floor(s % 60);
-    return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+    if (isNaN(s)) return "0:00";
+    const mins = Math.floor(s / 60);
+    const secs = Math.floor(s % 60);
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
 }
 
 audio.ontimeupdate = () => {
-  if (!audio.duration) return;
-  const percent = (audio.currentTime / audio.duration) * 100;
-  progressBar.style.width = `${percent}%`;
-  
-  if(currTimeEl) currTimeEl.innerText = formatTime(audio.currentTime);
-  if(durTimeEl) durTimeEl.innerText = formatTime(audio.duration);
+    const { currentTime, duration } = audio;
+    if (duration) {
+        const percent = (currentTime / duration) * 100;
+        els.progressBar.style.width = `${percent}%`;
+        els.currTime.innerText = formatTime(currentTime);
+        els.durTime.innerText = formatTime(duration);
+    }
 };
 
-audio.onloadedmetadata = () => {
-    if(durTimeEl) durTimeEl.innerText = formatTime(audio.duration);
-};
-
-// Make progress clickable
-progressContainer.onclick = e => {
-  if (!audio.duration) return;
-  const rect = progressContainer.getBoundingClientRect();
-  const clickX = e.clientX - rect.left;
-  const width = rect.width;
-  audio.currentTime = (clickX / width) * audio.duration;
+els.progressContainer.onclick = (e) => {
+    const width = els.progressContainer.clientWidth;
+    const clickX = e.offsetX;
+    const duration = audio.duration;
+    if (duration) {
+        audio.currentTime = (clickX / width) * duration;
+    }
 };
 
 // =====================
-// VOLUME (PC ONLY)
+// VOLUME (PC)
 // =====================
-if(volumeSlider) {
-    volumeSlider.oninput = e => { audio.volume = e.target.value; };
+if (els.volSlider) {
+    els.volSlider.oninput = (e) => audio.volume = e.target.value;
 }
 
 // =====================
 // SEARCH
 // =====================
-searchInput.oninput = e => {
-  const term = e.target.value.toLowerCase();
-  const filtered = songs.filter(s => s.title.toLowerCase().includes(term));
-  renderSongList(filtered);
+els.search.oninput = (e) => {
+    const term = e.target.value.toLowerCase();
+    const filtered = songs.filter(s => s.title.toLowerCase().includes(term));
+    
+    // We render the filtered list but keep original indices for playback
+    els.list.innerHTML = "";
+    filtered.forEach(song => {
+        const div = document.createElement("div");
+        div.className = `track-card ${song.index === currentIndex ? 'active' : ''}`;
+        div.innerHTML = `
+            <div class="card-img"><i class="fa-solid fa-music"></i></div>
+            <div class="info">
+                <div class="card-title">${song.title}</div>
+                <div class="card-artist">${song.artist || 'Unknown'}</div>
+            </div>
+        `;
+        div.onclick = () => playSong(song.index);
+        els.list.appendChild(div);
+    });
 };
-
-if (searchIcon) {
-  searchIcon.onclick = () => {
-    const container = document.querySelector(".search-container");
-    container.classList.toggle("active");
-    if (container.classList.contains("active")) searchInput.focus();
-  };
-}
