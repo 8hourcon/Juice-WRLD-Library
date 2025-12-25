@@ -205,7 +205,7 @@ els.search.oninput = (e) => {
             <div class="card-img"><i class="fa-solid fa-music"></i></div>
             <div class="info">
                 <div class="card-title">${song.title}</div>
-                <div class="card-artist">${song.artist || 'Unknown'}</div>
+                <div class="card-artist">${song.artist || 'Juice WRLD'}</div>
             </div>
         `;
         div.onclick = () => playSong(song.index);
